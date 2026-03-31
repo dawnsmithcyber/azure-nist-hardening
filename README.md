@@ -26,19 +26,25 @@ I executed the following configurations via the Azure Run Command interface to s
 ## 🖼️ Technical Evidence & Verification
 To ensure the security posture was successfully updated without interactive login (RDP), I utilized the Azure Run Command interface to push the remediation script directly to the VM instance.
 
-### **Step 1: Remote Policy Deployment**
+### **Step 1: Baseline Vulnerability Assessment**
+Before applying NIST controls, an authenticated **Nessus** scan was performed to identify existing security gaps. The scan identified multiple **High-Risk** vulnerabilities related to software lifecycle management (Docker Desktop).
+
+<img width="1278" height="691" alt="Baseline Scan" src="https://github.com/user-attachments/assets/efbe8079-5831-44f9-8c83-fa809a531351" />
+*Figure 1: Initial Nessus scan identifying high-risk vulnerabilities and configuration gaps.*
+
+### **Step 2: Remote Policy Deployment**
 The following image demonstrates the execution of the PowerShell remediation script within the Azure console. By using `gpupdate /force`, I ensured the NIST 800-53 requirements were applied immediately to the system registry.
 
-<img width="1273" height="678" alt="New Rules" src="https://github.com/user-attachments/assets/b7fe90e7-024c-43b4-bbdc-44a358344af1" />
+<img width="1266" height="720" alt="Azure Run Command" src="https://github.com/user-attachments/assets/549e9c88-4254-4621-9896-a58e8bc6d3f0" />
+*Figure 2: Executing NIST-compliant password policies and software updates via the Azure backbone.*
 
-*Figure 1: Executing NIST-compliant password policies via the Azure backbone.*
+### **Step 3: Post-Remediation Audit**
+Validation is a critical SOC function. I performed a follow-up credentialed scan to verify that all High-Severity risks were mitigated.
 
-### **Step 2: Post-Remediation Audit**
-Validation is a critical SOC function. The output below confirms that the Windows Server instance now aligns with **IA-5** standards, specifically verifying the 12-character minimum and 90-day expiration cycle.
+<img width="1275" height="678" alt="Final Scan" src="https://github.com/user-attachments/assets/f3556483-b43d-44ed-a884-b3467cf6fb38" />
+*Figure 3: Final Nessus dashboard confirming 100% remediation of High-Severity risks.*
 
-<img width="1162" height="438" alt="Sucess" src="https://github.com/user-attachments/assets/e2a519f8-18be-49c4-a6c2-5d66e827c19d" />
-
-*Figure 2: Successful audit of Net Accounts parameters showing 100% compliance.*
+> **Note on Environmental Risk Acceptance:** A "Medium" finding remains on the final graph (Plugin #51192). This finding remains because the lab environment uses internal encryption that hasn't been signed by a public third party. In a production SOC environment, this is documented as an accepted risk for internal-only laboratory traffic.
 
 ## 💻 PowerShell Remediation Script
 ```powershell
@@ -50,36 +56,37 @@ net accounts /maxpwage:90
 # Force policy update and verify configuration
 gpupdate /force
 net accounts
-
 ```
 ---
+---
+
 ## 🔍 The SOC "Fraud Hunter" Perspective
 In a **Security Operations Center (SOC)** environment, identifying the "Fraud Hunter" mindset means recognizing that "bad actors" prioritize the path of least resistance. This perspective is essential for proactive defense, incident detection, and high-level security analysis.
 
 ### **Technical Hardening & Access Control**
-* **Mitigating Credential Stuffing:** Moving to a **12-character minimum** exponentially increases the cost and time required for an attacker to crack passwords via automated tools or brute-force, reducing the risk of unauthorized access.
-* **Preventing Persistence:** Enforcing **password history** ensures that even if a credential is leaked, a simple reset to a previous known password will not allow a threat actor back into the system, a critical step for successful incident remediation.
+* **Mitigating Credential Stuffing:** Moving to a **12-character minimum** exponentially increases the cost and time required for an attacker to crack passwords via automated tools or brute-force, significantly reducing the risk of unauthorized access.
+* **Preventing Persistence:** Enforcing **password history** ensures that even if a credential is leaked, a simple reset to a previous known password will not allow a threat actor back into the system—a critical step for successful incident remediation.
 
 ### **💡 Key SOC Technical Wins**
-* **Remote Remediation:** Developed the ability to manage and harden assets when traditional tools are blocked—a vital skill for **SOC Analysts** and **Incident Responders** during active containment.
+* **Vulnerability Management Lifecycle:** Successfully identified **CVE-2025-13743** and **CVE-2026-2664**, mapped them to software lifecycle gaps, and verified remediation through authenticated scanning.
+* **Remote Remediation:** Developed the ability to manage and harden assets when traditional tools (RDP/Admin Center) are blocked—a vital skill for **SOC Analysts** and **Incident Responders** during active containment.
 * **Compliance Mapping:** Successfully mapped **NIST 800-53** controls to a live, production-style cloud environment, ensuring defense-in-depth aligns with industry frameworks.
 * **Technical Troubleshooting:** Overcame command syntax errors (e.g., `/UNIQUEPW` vs. `/UNIQUENESS`) to ensure successful policy deployment across the cloud architecture.
 
 ## 🚀 Scalability & Future Improvements
-
-In a production enterprise environment, maintaining a "Fraud Hunter" defense requires shifting from manual remediation to automated, continuous compliance. To scale this project across thousands of nodes, I have identified the following strategic improvements:
+In a production enterprise environment, maintaining a "Fraud Hunter" defense requires shifting from manual remediation to automated, continuous compliance.
 
 ### **1. Policy-as-Code (PaC) & Automation**
-* **Transition to Azure Policy:** Moving beyond manual **Azure Run Command** execution to implementing **Azure Policy Guest Configuration**. This allows for "Audit if not exists" or "Deploy if not exists" logic, ensuring that any new VM spun up in the environment is automatically hardened to NIST 800-53 standards without manual intervention.
-* **Desired State Configuration (DSC):** Utilizing **PowerShell DSC** to enforce the "Net Accounts" state. If a local admin or bad actor attempts to revert the password length to a weaker setting, DSC will automatically detect the drift and "re-apply" the 12-character minimum.
+* **Transition to Azure Policy:** Moving beyond manual execution to implementing **Azure Policy Guest Configuration**. This allows for "Deploy if not exists" logic, ensuring any new VM is automatically hardened to NIST 800-53 standards upon creation.
+* **Desired State Configuration (DSC):** Utilizing **PowerShell DSC** to enforce the "Net Accounts" state. If a local admin attempts to revert settings, DSC will automatically detect the drift and "re-apply" the 12-character minimum.
 
 ### **2. Global Infrastructure Deployment**
-* **Group Policy Objects (GPO):** For domain-joined assets, these NIST controls would be centralized via **Active Directory GPOs**. This ensures inheritance across specific **Organizational Units (OUs)**, providing a uniform security baseline for all workstations and servers.
-* **Infrastructure as Code (IaC):** Integrating these hardening scripts into **Terraform** or **Bicep** templates. By baking security into the deployment phase, we reduce the "window of vulnerability" between VM creation and first-run hardening.
+* **Group Policy Objects (GPO):** For domain-joined assets, these NIST controls would be centralized via **Active Directory GPOs** to ensure a uniform security baseline across all organizational units (OUs).
+* **Infrastructure as Code (IaC):** Integrating these hardening scripts into **Terraform** or **Bicep** templates to eliminate the "window of vulnerability" between VM creation and first-run hardening.
 
-###  **3. Advanced Monitoring & SIEM Integration**
-* **Log Forwarding:** Configuring the Windows Event Log to forward **Event ID 4739** (Domain Policy Change) to **Microsoft Sentinel**. 
-* **Alert Logic:** Creating a Kusto Query Language (KQL) alert to trigger an investigation if a "Net Accounts" change is detected outside of a documented maintenance window, signaling a potential attempt by a threat actor to weaken the system's defenses.
+### **3. Advanced Monitoring & SIEM Integration**
+* **Log Forwarding:** Configuring Windows Event Logs to forward **Event ID 4739** (Domain Policy Change) to **Microsoft Sentinel**.
+* **Alert Logic:** Creating a **Kusto Query Language (KQL)** alert to trigger an investigation if a "Net Accounts" change is detected outside of a documented maintenance window, signaling a potential attempt to weaken system defenses.
 
-### **🛡️ Verification & Audit**
-Successfully verified through the **Azure Portal** output console, confirming all `Net Accounts` parameters align with **NIST 800-53 IA-5** standards for secure identification and authentication.
+## 🛡️ Verification & Audit
+Successfully verified through the **Azure Portal** output console and **Nessus** authenticated scans, confirming all `Net Accounts` parameters align with **NIST 800-53 IA-5** standards for secure identification and authentication.
